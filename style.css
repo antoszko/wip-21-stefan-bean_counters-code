@@ -1,0 +1,15 @@
+body {
+    padding: 0;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    height: 100vh;
+    align-items: center;
+    background-color: #478d6d;
+    font-family: "Burbank Big Regular Bold";
+}
+
+@font-face {
+    font-family: "Burbank Big Regular Bold";
+    src: url("fonts/burbank_big_regular_bold.ttf") format("truetype");
+}
