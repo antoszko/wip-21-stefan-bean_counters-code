@@ -1,4 +1,4 @@
-const SCALE = 0.8;    //scale of canvas in window
+const SCALE = 1;    //scale of canvas in window
 
 export class Game {
     //callbacks

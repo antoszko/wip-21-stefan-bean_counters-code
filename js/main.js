@@ -12,6 +12,7 @@ import {Game} from "./core.js";
 
 class Projectile extends PIXI.AnimatedSprite {
   static GRAVITY = 0.6;
+  static HORIZONTAL_GRAVITY = 0.2;
   ax = 0;
   ay = 0;
   vx = 0;
@@ -22,9 +23,13 @@ class Projectile extends PIXI.AnimatedSprite {
     this.y = y;
   }
 
-  update(scale) {
+  update(scale, delta) {
     this.vx += this.ax * scale;
     this.vy += this.ay * scale;
+    if(this.vx >= 0) {
+      this.vx = 0;
+      this.ax = 0;
+    }
     this.x += this.vx * scale;
     this.y += this.vy * scale;
     this.rotation += 0.01 * this.vx * scale;
@@ -77,9 +82,13 @@ class Point {
 const MAX_PROJECTILES = 10;
 const SHOW_COLLIDERS = false;
 let projectileRespawnPoint = new Point(1200, 300);
+const PROJ_VEL_Y = -15;
+let PROJ_VEL_X = -8; //just the maximum distance projectiles are thrown.
+
 const COFFEE_COLLIDER_RADIUS = 60;
 const PROJ_COLLIDER_RADIUS = 40;
 const PLAYER_COLLIDER_RADIUS = 80;
+
 const graphics  = new PIXI.Graphics();
 
 let score = 0;
@@ -322,8 +331,9 @@ const beanCounters = new Game(
     countDownText.visible = false;
     beanCounters.gameScene.addChild(countDownText);
 
-    projectileRespawnPoint.x = beanCounters.app.view.width;
-    projectileRespawnPoint.y = beanCounters.app.view.height / 2;
+    updateProjectileRespawnPoint();
+
+    updateProjectileVelocity();
 
     beanCounters.app.stage.addChild(beanCounters.menuScene);
   },
@@ -400,9 +410,13 @@ const beanCounters = new Game(
           counters[i] = 0;
 
           projectiles[nextProjectile].resetAll();
+          projectiles[nextProjectile].visible = true;
           projectiles[nextProjectile].ay = Projectile.GRAVITY;
-          projectiles[nextProjectile].vy = -(Math.random() * 15 + 5);
-          projectiles[nextProjectile].vx = -(Math.random() * 10 + 5);
+          projectiles[nextProjectile].ax = Projectile.HORIZONTAL_GRAVITY;
+          projectiles[nextProjectile].vy = PROJ_VEL_Y;  //all projectiles have same vertical velocity
+          projectiles[nextProjectile].vx = Math.random() * (PROJ_VEL_X + 8) - 8;  //horizontal is range from -8 to -max
+          //projectiles[nextProjectile].vx = PROJ_VEL_X;
+
           projectiles[nextProjectile].gotoAndStop(PROJ_COFFEE);
           if(Math.random() < 0.3 - 11 * (level - 4) * (level - 4) / 300) {
             //is hazard
@@ -422,7 +436,7 @@ const beanCounters = new Game(
     }
     //update projectiles
     for(const projectile of projectiles) {
-      projectile.update(scale);
+      projectile.update(scale, delta);
     }
 
     //draw colliders
@@ -454,11 +468,13 @@ const beanCounters = new Game(
             player.gotoAndStop(player.currentFrame + 1);
             if (player.currentFrame === DIE_COFFEE) {
               projectile.resetAll();
+              projectile.visible = false;
               loseLife();
             }
             else {
               increaseScore(2 * level);
               projectile.resetAll();
+              projectile.visible = false;
               coffeeCatchSFX.play();
             }
           }
@@ -554,10 +570,8 @@ const beanCounters = new Game(
         projectile.y = height - 60;
       }
     }
-    //move projectile spawn point
-    projectileRespawnPoint.x = width;
-    projectileRespawnPoint.y = height / 2;
-
+    updateProjectileRespawnPoint();
+    updateProjectileVelocity();
     //move player
     player.y = height - 102;
 
@@ -630,6 +644,14 @@ function reset() {
   livesText.text = 'LIVES: ' + lives;
   level = 1;
   levelText.text = 'LEVEL: ' + level;
+  //reset projectiles
+  for(let projectile of projectiles) {
+    projectile.resetAll();
+  }
+  counters[0] = 0;
+  counters[1] = 0;
+  counters[2] = 0;
+  counters[3] = 0;
 }
 
 function increaseScore(amount) {
@@ -653,4 +675,21 @@ function loseLife() {
   counter = 0;
   lowerText.text = 'TRY AGAIN..';
   lowerText.visible = true;
+}
+
+function updateProjectileRespawnPoint() {
+  let h = 0;  //total height gained by projectile during flight
+  for(let v = PROJ_VEL_Y; v < 0; v += Projectile.GRAVITY) {
+    h += v;
+  }
+  projectileRespawnPoint.x = beanCounters.app.view.width - 100;
+  projectileRespawnPoint.y = beanCounters.app.view.height - 500 - h;
+}
+
+function updateProjectileVelocity() {
+  //using kinematics, find time it takes for projectile to fall, use that time to determine vi
+  let d = (projectileRespawnPoint.y - beanCounters.app.view.height + 60); //vertical distance (-)
+  let vf = -Math.sqrt(PROJ_VEL_Y * PROJ_VEL_Y + 2 * (-Projectile.GRAVITY) * d); //middle step since I dont want to use quadratic formula
+  let t = 2 * d / (-PROJ_VEL_Y + vf);
+  PROJ_VEL_X = (-beanCounters.app.view.width + 400 - 0.5 * Projectile.HORIZONTAL_GRAVITY * t * t) / t;  //solve for vi
 }
