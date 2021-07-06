@@ -1,3 +1,5 @@
+const SCALE = 0.8;    //scale of canvas in window
+
 export class Game {
     //callbacks
     addTextures;
@@ -8,6 +10,7 @@ export class Game {
     mouseDown;
     keyUp;
     keyDown;
+    resize;
 
     //PIXI things
     app;
@@ -26,7 +29,7 @@ export class Game {
     static ButtonTextStyle = new PIXI.TextStyle({fill: 0xFFFFFF, stroke: 0x0, strokeThickness: 6, miterLimit: 4, fontSize: 36,fontFamily: 'Burbank Big Regular Bold'});
     static BigTextStyle = new PIXI.TextStyle({fill: 0xFFFFFF, stroke: 0x0, strokeThickness: 6, miterLimit: 4, fontSize: 128,fontFamily: 'Burbank Big Regular Bold'});
 
-    constructor(addTextures, loadTextures, update, mouseMove, mouseDown, mouseUp, keyDown, keyUp) {
+    constructor(addTextures, loadTextures, update, mouseMove, mouseDown, mouseUp, keyDown, keyUp, resize) {
         this.addTextures = addTextures;
         this.loadTextures = loadTextures;
         this.update = update;
@@ -35,14 +38,15 @@ export class Game {
         this.mouseDown = mouseDown;
         this.keyUp = keyUp;
         this.keyDown = keyDown;
+        this.resize = resize;
     }
 
     start() {
         //PIXI setup
         this.app = new PIXI.Application(
             {
-                width: window.innerWidth,
-                height: window.innerHeight,
+                width: window.innerWidth * SCALE,
+                height: window.innerHeight * SCALE,
                 backgroundColor: 0xAAAAAA,
                 autoResize: true,
             }
@@ -63,7 +67,8 @@ export class Game {
 
             //window resize
             window.onresize = () => {
-                this.app.renderer.resize(window.innerWidth,  window.innerHeight);
+                this.app.renderer.resize(window.innerWidth * SCALE,  window.innerHeight * SCALE);
+                this.resize(this.app.view.width,  this.app.view.height);
             }
             //input callbacks
             document.body.onmousemove = (e) => {this.mouseMove(e.x - this.app.view.offsetLeft, e.y - this.app.view.offsetTop)};
@@ -98,6 +103,7 @@ export class Game {
 
     createButton(x, y, width, height, text, texture, func, scene) {
         const b = new PIXI.Sprite(texture);
+        b.anchor = new PIXI.Point(0.5, 0.5);
         b.x = x;
         b.y = y;
         b.width = width;
@@ -106,8 +112,9 @@ export class Game {
         b.buttonMode = true;
 
         const t = new PIXI.Text(text, Game.ButtonTextStyle);
-        t.x = x + (width - 16 * text.length)/2;
-        t.y = y + (height - 36)/2;
+        t.anchor = new PIXI.Point(0.5, 0.5);
+        t.x = x;
+        t.y = y;
 
         b.click = () => {
             b.tint = 0xffffff;
@@ -128,5 +135,8 @@ export class Game {
 
         scene.addChild(b);
         scene.addChild(t);
+
+        //return the button object
+        return {'sprite': b, 'text': t};
     }
 }

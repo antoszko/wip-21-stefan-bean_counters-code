@@ -1,11 +1,4 @@
 /*
-  Q's
-  - how to share? github?
-  - high score list. how?
-  - images, viking theme, (play as viking, catch shields, dodge fish, oars, treasure chests)
- */
-
-/*
   Level 1: always coffee. 1 thrower. avg. 1 sec                               0.000
   Level 2: 1 in 8 are anvil. 2 throwers.                                      0.125
   Level 3: 1 in 6 are anvils. 1 in 7 are fish. 2 throwers                     0.309
@@ -16,10 +9,6 @@
  */
 
 import {Game} from "./core.js";
-
-const MAX_PROJECTILES = 10;
-
-const SHOW_COLLIDERS = false;
 
 class Projectile extends PIXI.AnimatedSprite {
   static GRAVITY = 0.6;
@@ -40,17 +29,22 @@ class Projectile extends PIXI.AnimatedSprite {
     this.y += this.vy * scale;
     this.rotation += 0.01 * this.vx * scale;
 
-    if(this.y > beanCounters.app.view.height + 100) {
+    if(this.y > beanCounters.app.view.height - 60) {
       this.resetAcc();
       this.resetVel();
-      this.y = beanCounters.app.view.height + 100;
+      this.y = beanCounters.app.view.height - 60;
 
       switch(this.currentFrame) {
         case PROJ_VASE: vaseFallSFX.play(); break;
         case PROJ_FISH: fishFallSFX.play(); break;
         case PROJ_ANVIL: anvilFallSFX.play(); break;
-        default: coffeeFallSFX.play(); increaseScore(-level); break;
+        default: coffeeFallSFX.play();
+          if(!dead && !waitingForNextLevel) increaseScore(-level);
+          break;
       }
+
+      this.gotoAndStop(this.currentFrame + 4);
+      this.rotation = 0;
     }
   }
 
@@ -80,9 +74,11 @@ class Point {
   }
 }
 
+const MAX_PROJECTILES = 10;
+const SHOW_COLLIDERS = false;
 let projectileRespawnPoint = new Point(1200, 300);
 const COFFEE_COLLIDER_RADIUS = 60;
-const PROJ_COLLIDER_RADIUS = 50;
+const PROJ_COLLIDER_RADIUS = 40;
 const PLAYER_COLLIDER_RADIUS = 80;
 const graphics  = new PIXI.Graphics();
 
@@ -99,13 +95,18 @@ let scoreText;
 let livesText;
 let levelText;
 
-let truckUnloadedText;
-let nextTruckText;
-let tryAgainText;
+let upperText;
+let lowerText;
 let countDownText;
 
 const coffeeStack = [];
 let coffeesStacked = 0;
+
+//saving these to readjust them when window is resized
+let pauseButton;
+let keepPlayingButton;
+let menuButton;
+let okayButton;
 
 let player;
 let menuBGSprite;
@@ -129,10 +130,14 @@ const DIE_COFFEE = 6;
 const DIE_ANVIL = 7;
 const DIE_FISH = 8;
 const DIE_VASE = 9;
-const PROJ_VASE = 10;
+const PROJ_ANVIL = 10;
 const PROJ_FISH = 11;
-const PROJ_ANVIL = 12;
+const PROJ_VASE = 12;
 const PROJ_COFFEE = 13;
+const SMASHED_ANVIL = 14;
+const SMASHED_FISH = 15;
+const SMASHED_VASE = 16;
+const SMASHED_COFFEE = 17;
 
 //delays and counters for each 'thrower' in the truck
 const delays = [Math.random() +0.5, Math.random() +0.5, Math.random() +0.5, Math.random() +0.5];
@@ -191,7 +196,7 @@ filterNode.connect(audioContext.destination);
 const beanCounters = new Game(
   ()=>{
     beanCounters.loader
-      .add('sheet', 'images/Bean_Counters_sheet.png')
+      .add('sheet', 'images/sheet.png')
       .add('menu', 'images/Menu_08.jpg')
       .add('gui', 'images/gui.png')
       .add('truck', 'images/truck.png')
@@ -202,7 +207,7 @@ const beanCounters = new Game(
 
     resources.sheet.texture.baseTexture.scaleMode = PIXI.NEAREST;
 
-    for(let y = 0; y < 3; y++) {
+    for(let y = 0; y < 4; y++) {
       for(let x = 0; x < 5; x++) {
         textures.push(new PIXI.Texture(
           resources.sheet.texture,
@@ -211,44 +216,39 @@ const beanCounters = new Game(
       }
     }
 
-    player = new PIXI.AnimatedSprite(textures);
-    player.y = beanCounters.app.view.height - 205/2;
-    player.anchor = new PIXI.Point(0.5, 0.5);
-    beanCounters.gameScene.addChild(player);
-
     menuBGSprite = new PIXI.Sprite(resources.menu.texture);
     beanCounters.menuScene.addChild(menuBGSprite);
 
-    beanCounters.createButton(20, 20, 300, 64, 'PLAY!',
+    beanCounters.createButton(180, 52, 300, 64, 'PLAY!',
       new PIXI.Texture(beanCounters.loader.resources.gui.texture, new PIXI.Rectangle(0, 761, 510, 169)),
       () => {
         beanCounters.setScene('game');
         reset();
         filterNode.frequency.value = 20000;
       }, beanCounters.menuScene);
-    beanCounters.createButton(beanCounters.app.view.width-81, 20, 61, 61, '',
-      new PIXI.Texture(beanCounters.loader.resources.gui.texture, new PIXI.Rectangle(510, 761, 61, 61)),
-      () => {
-        pause();
-      }, beanCounters.gameScene);
-    beanCounters.createButton(beanCounters.app.view.width/2 - 310, 180, 300, 64, 'KEEP PLAYING',
+    //save this one to
+    pauseButton = beanCounters.createButton(beanCounters.app.view.width-40, 60, 61, 61, '',
+      new PIXI.Texture(beanCounters.loader.resources.gui.texture, new PIXI.Rectangle(510, 761, 61, 61)), pause, beanCounters.gameScene);
+
+    keepPlayingButton = beanCounters.createButton(beanCounters.app.view.width/2 - 160, beanCounters.app.view.height/2, 300, 64, 'KEEP PLAYING',
       new PIXI.Texture(beanCounters.loader.resources.gui.texture, new PIXI.Rectangle(0, 761, 510, 169)),
       () => {
         beanCounters.setScene('game');
         filterNode.frequency.value = 20000;
       }, beanCounters.pauseScene);
 
-    beanCounters.createButton(beanCounters.app.view.width/2 + 10, 180, 300, 64, 'MENU',
+    menuButton = beanCounters.createButton(beanCounters.app.view.width/2 + 160, beanCounters.app.view.height/2, 300, 64, 'MENU',
       new PIXI.Texture(beanCounters.loader.resources.gui.texture, new PIXI.Rectangle(0, 761, 510, 169)),
       () => {
         beanCounters.setScene('menu');
         filterNode.frequency.value = 20000;
       }, beanCounters.pauseScene);
 
-    beanCounters.createButton(beanCounters.app.view.width/2 + -150, 380, 300, 64, 'OKAY',
+    okayButton = beanCounters.createButton(beanCounters.app.view.width/2, beanCounters.app.view.height/2, 300, 64, 'OKAY',
       new PIXI.Texture(beanCounters.loader.resources.gui.texture, new PIXI.Rectangle(0, 761, 510, 169)),
       () => {
         beanCounters.setScene('menu');
+        upperText.visible = false;
       }, beanCounters.winScene);
 
     livesText = new PIXI.Text('LIVES: 3', Game.ButtonTextStyle);
@@ -266,6 +266,7 @@ const beanCounters = new Game(
     scoreText.y = 48;
     beanCounters.gameScene.addChild(scoreText);
 
+    //initialize stack of coffee on side
     for(let i = 0; i < 60; i++) {
       let sack = new PIXI.Sprite(textures[PROJ_COFFEE]);
       sack.x = -Math.floor((i / 30) + 1)* 50 + 100 + Math.random() * 20;
@@ -277,6 +278,7 @@ const beanCounters = new Game(
       coffeeStack.push(sack);
     }
 
+    //initialize projectiles
     for(let i = 0; i < MAX_PROJECTILES; i++) {
       const projectile = new Projectile(textures, 900, 300);
       projectile.anchor = new PIXI.Point(0.5, 0.5);
@@ -286,40 +288,42 @@ const beanCounters = new Game(
       beanCounters.gameScene.addChild(projectile);
     }
 
+    player = new PIXI.AnimatedSprite(textures);
+    player.y = beanCounters.app.view.height - 102;
+    player.anchor = new PIXI.Point(0.5, 0.5);
+    beanCounters.gameScene.addChild(player);
+
     truck = new PIXI.Sprite(resources.truck.texture);
     beanCounters.gameScene.addChild(truck);
     truck.x = beanCounters.app.view.width - 246 + 5;
     truck.y = beanCounters.app.view.height - 418 - 20;
 
-    truckUnloadedText = new PIXI.Text('TRUCK UNLOADED!!', Game.ButtonTextStyle);
-    truckUnloadedText.anchor = new PIXI.Point(0.5, 0.5);
-    truckUnloadedText.x = beanCounters.app.view.width/2;
-    truckUnloadedText.y = 260;
-    truckUnloadedText.visible = false;
-    beanCounters.gameScene.addChild(truckUnloadedText);
+    upperText = new PIXI.Text('TRUCK UNLOADED!!', Game.ButtonTextStyle);
+    upperText.anchor = new PIXI.Point(0.5, 0.5);
+    upperText.x = beanCounters.app.view.width/2;
+    upperText.y = beanCounters.app.view.height / 3;
+    upperText.visible = false;
+    beanCounters.gameScene.addChild(upperText);
 
-    nextTruckText = new PIXI.Text('NEXT TRUCK!!', Game.ButtonTextStyle);
-    nextTruckText.anchor = new PIXI.Point(0.5, 0.5);
-    nextTruckText.x = beanCounters.app.view.width/2;
-    nextTruckText.y = 260;
-    nextTruckText.visible = false;
-    beanCounters.gameScene.addChild(nextTruckText);
 
-    tryAgainText = new PIXI.Text('TRY AGAIN..', Game.ButtonTextStyle);
-    tryAgainText.anchor = new PIXI.Point(0.5, 0.5);
-    tryAgainText.x = beanCounters.app.view.width/2;
-    tryAgainText.y = 380;
-    tryAgainText.visible = false;
-    beanCounters.gameScene.addChild(tryAgainText);
+    lowerText = new PIXI.Text('TRY AGAIN..', Game.ButtonTextStyle);
+    lowerText.anchor = new PIXI.Point(0.5, 0.5);
+    lowerText.x = beanCounters.app.view.width/2;
+    lowerText.y = beanCounters.app.view.height * 2 / 3;
+    lowerText.visible = false;
+    beanCounters.gameScene.addChild(lowerText);
 
     countDownText = new PIXI.Text('3', Game.BigTextStyle);
     countDownText.anchor = new PIXI.Point(0.5, 0.5);
     countDownText.x = beanCounters.app.view.width/2;
-    countDownText.y = 260;
+    countDownText.y = beanCounters.app.view.height / 3;
     countDownText.tint = 0xeeff00;  //yellow
     countDownText.alpha = 0.5;
     countDownText.visible = false;
     beanCounters.gameScene.addChild(countDownText);
+
+    projectileRespawnPoint.x = beanCounters.app.view.width;
+    projectileRespawnPoint.y = beanCounters.app.view.height / 2;
 
     beanCounters.app.stage.addChild(beanCounters.menuScene);
   },
@@ -336,7 +340,7 @@ const beanCounters = new Game(
         case 1: countDownText.visible = true; countDownText.text = '3'; break;
         case 2: countDownText.text = '2'; break;
         case 3: countDownText.text = '1'; break;
-        case 4: dead = false; player.gotoAndStop(CATCH_0); countDownText.visible = false; tryAgainText.visible = false; break;
+        case 4: dead = false; player.gotoAndStop(CATCH_0); countDownText.visible = false; lowerText.visible = false; break;
       }
 
       countDownText.alpha = Math.ceil(seconds) - seconds;
@@ -355,8 +359,7 @@ const beanCounters = new Game(
         }
         if(counter / 1000 >= 3) {
           truckState = TRUCK_BACKING_UP;
-          truckUnloadedText.visible = false;
-          nextTruckText.visible = true;
+          upperText.text = 'NEXT TRUCK!!';
           truckBackUpSFX.play();
         }
       }
@@ -365,7 +368,7 @@ const beanCounters = new Game(
         truck.x -= truckSpeed * scale / 2;
         if(truck.x <= beanCounters.app.view.width - 246 + 5) {
           truckState = TRUCK_WAITING;
-          nextTruckText.visible = false;
+          upperText.visible = false;
         }
       }
 
@@ -386,7 +389,6 @@ const beanCounters = new Game(
 
     //throwing projectiles
     if(!dead && !waitingForNextLevel) {
-      //TODO change
       let throwers = level;
       if(level >= 3) throwers--;
 
@@ -426,7 +428,7 @@ const beanCounters = new Game(
     //draw colliders
     if(SHOW_COLLIDERS) {
       graphics.clear();
-      graphics.beginFill(0xff00, 0.5);
+      graphics.beginFill(0xff00, 0.3);
       for (const projectile of projectiles) {
         graphics.drawCircle(projectile.x, projectile.y, (projectile.currentFrame === PROJ_COFFEE) ? COFFEE_COLLIDER_RADIUS : PROJ_COLLIDER_RADIUS);
       }
@@ -441,8 +443,12 @@ const beanCounters = new Game(
         let dx = projectile.x - player.x;
         let dy = projectile.y - player.y;
 
+        //early skip if the projectile is smashed
+        if(projectile.currentFrame >= SMASHED_ANVIL) {
+          continue;
+        }
         //hit! if coffee, reset projectile, increase score, set sprite, play sound
-        if (projectile.currentFrame === PROJ_COFFEE) {
+        else if (projectile.currentFrame === PROJ_COFFEE) {
           if (Math.sqrt(dy * dy + dx * dx) <= COFFEE_COLLIDER_RADIUS + PLAYER_COLLIDER_RADIUS) {
             //max coffee
             player.gotoAndStop(player.currentFrame + 1);
@@ -486,11 +492,14 @@ const beanCounters = new Game(
         player.x = 300;
       }
     }
-
   },
   (x, y)=>{
-    audioContext.resume();
-    theme.play();
+    //TODO uncomment
+    //audioContext.resume();
+    //theme.play();
+
+    //if win, cant place things
+    if(beanCounters.currentScene !== 'game') return;
 
     //if player is on the left side of screen, increase score, decrement anim frame
     if(player.x <= 350 && !dead && !waitingForNextLevel) {
@@ -511,13 +520,17 @@ const beanCounters = new Game(
         if(coffeesStacked >= 10 * (level + 1)) {
           increaseScore(level * 25); //bonus for beating level
           if(level === 5) {
+            increaseScore(lives * 250);
             beanCounters.setScene('win');
+            upperText.text = 'GAME OVER!! SCORE: ' + score;
+            upperText.visible = true;
             return;
           }
           counter = 0;
           waitingForNextLevel = true;
           truckState = TRUCK_LEAVING;
-          truckUnloadedText.visible = true;
+          upperText.text = 'TRUCK UNLOADED!!'
+          upperText.visible = true;
           truckDriveAwaySFX.play();
         }
         stackSFX.play();
@@ -532,14 +545,67 @@ const beanCounters = new Game(
       pause();
     }
   },
-  (key)=>{}
+  (key)=>{},
+  (width, height)=>{
+    console.log('resized!');
+    //move projectiles
+    for(let projectile of projectiles) {
+      if(projectile.currentFrame >= SMASHED_ANVIL) {
+        projectile.y = height - 60;
+      }
+    }
+    //move projectile spawn point
+    projectileRespawnPoint.x = width;
+    projectileRespawnPoint.y = height / 2;
+
+    //move player
+    player.y = height - 102;
+
+    //move all ui (x button, upper & lower texts, countdown text)
+    upperText.x = width/2;
+    upperText.y = height/3;
+    lowerText.x = width/2;
+    lowerText.y = height * 2 /3;
+    countDownText.x = width/2;
+    countDownText.y = height/3;
+
+    pauseButton.sprite.x = width-40;
+    pauseButton.text.x = width-40;
+
+    keepPlayingButton.sprite.x = width/2 - 160;
+    keepPlayingButton.sprite.y = height / 2;
+    keepPlayingButton.text.x = width/2 - 160
+    keepPlayingButton.text.y = height / 2;
+
+    menuButton.sprite.x = width/2 + 160;
+    menuButton.sprite.y = height / 2;
+    menuButton.text.x = width/2 + 160;
+    menuButton.text.y = height / 2;
+
+    okayButton.sprite.x = width/2;
+    okayButton.sprite.y = height / 2;
+    okayButton.text.x = width/2;
+    okayButton.text.y = height / 2;
+    //move truck, platform, background elements
+    truck.x = width - 246 + 5;
+    truck.y = height - 418 - 20;
+
+    //move stack
+    for(let i = 0; i < coffeeStack.length; i++) {
+      coffeeStack[i].y = beanCounters.app.view.height - 10 * (i%30) - 160 + 20 * Math.floor((i / 30)) - Math.random() * 5;
+      if(i % 30 < 4)
+        coffeeStack[i].y += 10;
+    }
+  }
 );
 
 beanCounters.start();
 
 function pause() {
-  beanCounters.setScene('pause');
-  filterNode.frequency.value = 1000;
+  if(beanCounters.currentScene === 'game') {
+    beanCounters.setScene('pause');
+    filterNode.frequency.value = 1000;
+  }
 }
 
 function resetCoffeeStack() {
@@ -577,11 +643,14 @@ function loseLife() {
   dieSFX.play();
   if(lives === 0) {
     beanCounters.setScene('win');
+    upperText.text = 'GAME OVER!! SCORE: ' + score;
+    upperText.visible = true;
     return;
   }
   lives--;
   livesText.text = 'LIVES: ' + lives;
   dead = true;
   counter = 0;
-  tryAgainText.visible = true;
+  lowerText.text = 'TRY AGAIN..';
+  lowerText.visible = true;
 }
