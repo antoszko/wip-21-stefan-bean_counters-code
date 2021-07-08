@@ -39,17 +39,15 @@ export class Game {
         this.keyUp = keyUp;
         this.keyDown = keyDown;
         this.resize = resize;
-    }
 
-    start() {
         //PIXI setup
         this.app = new PIXI.Application(
-            {
-                width: window.innerWidth * SCALE,
-                height: window.innerHeight * SCALE,
-                backgroundColor: 0xAAAAAA,
-                autoResize: true,
-            }
+          {
+              width: window.innerWidth * SCALE,
+              height: window.innerHeight * SCALE,
+              backgroundColor: 0xAAAAAA,
+              autoResize: true,
+          }
         );
         //PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
         document.body.appendChild(this.app.view);
@@ -116,21 +114,21 @@ export class Game {
         t.x = x;
         t.y = y;
 
-        b.click = () => {
+        b.click = function() {
             b.tint = 0xffffff;
             func();
         }
-        b.pointerdown = () => {
-            b.tint = 0xbfbfbf;
+        b.pointerdown = function() {
+            this.tint = 0xbfbfbf;
         };
-        b.pointerup = () => {
-            b.tint = 0xffffff;
+        b.pointerup = function() {
+            this.tint = 0xffffff;
         };
-        b.pointerover = () => {
-            b.tint = 0xeeeeee;
+        b.pointerover = function() {
+            this.tint = 0xeeeeee;
         };
-        b.pointerout = () => {
-            b.tint = 0xffffff;
+        b.pointerout = function() {
+            this.tint = 0xffffff;
         };
 
         scene.addChild(b);
@@ -138,5 +136,57 @@ export class Game {
 
         //return the button object
         return {'sprite': b, 'text': t};
+    }
+
+    createCheckBox(x, y, width, height, text, texture1, texture2, func, defaultState, scene) {
+        const b = new PIXI.Sprite(texture1);
+        b.anchor = new PIXI.Point(0, 0.5);
+        b.x = x + 10;
+        b.y = y;
+        b.width = width;
+        b.height = height;
+        b.interactive = true;
+        b.buttonMode = true;
+
+        b.isChecked = defaultState;    //new member
+
+        const check = new PIXI.Sprite(texture2);
+        check.anchor = new PIXI.Point(0.5, 0.5);
+        check.x = x + 10 + Math.max(width, height)/2;
+        check.y = y;
+        check.width = Math.min(width, height);
+        check.height = Math.min(width, height);
+        check.visible = b.isChecked;
+
+        const t = new PIXI.Text(text, Game.ButtonTextStyle);
+        t.anchor = new PIXI.Point(1, 0.5);
+        t.x = x - 10;
+        t.y = y;
+
+        b.click = function() {
+            b.tint = 0xffffff;
+            this.isChecked = !this.isChecked;
+            check.visible = this.isChecked;
+            func(this.isChecked);
+        }
+        b.pointerdown = function() {
+            this.tint = 0xbfbfbf;
+        };
+        b.pointerup = function() {
+            this.tint = 0xffffff;
+        };
+        b.pointerover = function() {
+            this.tint = 0xeeeeee;
+        };
+        b.pointerout = function() {
+            this.tint = 0xffffff;
+        };
+
+        scene.addChild(b);
+        scene.addChild(check);
+        scene.addChild(t);
+
+        //return the button object
+        return {'sprite1': b, 'sprite2': check, 'text': t};
     }
 }
