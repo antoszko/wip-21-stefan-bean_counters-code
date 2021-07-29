@@ -107,6 +107,7 @@ let levelText;
 let upperText;
 let lowerText;
 let countDownText;
+let fpsText;
 
 const coffeeStack = [];
 let coffeesStacked = 0;
@@ -189,7 +190,7 @@ const truckDriveAwaySource = audioContext.createMediaElementSource(truckDriveAwa
 const filterOptions = {type:'lowpass', frequency: 20000, q: 0};
 const filterNode = new BiquadFilterNode(audioContext, filterOptions);
 
-const musicGainOptions = {gain: 1};
+const musicGainOptions = {gain: 0};
 const musicGainNode = new GainNode(audioContext, musicGainOptions);
 
 const sfxGainOptions = {gain: 1};
@@ -277,13 +278,13 @@ const beanCounters = new Game(
     musicCheckBox = this.createCheckBox(this.app.view.width/2, this.app.view.height * 0.25, 300, 64, 'MUSIC',
       buttonTexture, starTexture,
       (isChecked) => {
-        musicGainNode.gain.linearRampToValueAtTime(isChecked?1:0, audioContext.currentTime + 1);
-      }, true, this.pauseScene);
+        musicGainNode.gain.linearRampToValueAtTime(isChecked?1:0, audioContext.currentTime + 0.5);
+      }, false, this.pauseScene);
 
     sfxCheckBox = this.createCheckBox(this.app.view.width/2, this.app.view.height * 0.375, 300, 64, 'SFX',
       buttonTexture, starTexture,
       (isChecked) => {
-        sfxGainNode.gain.linearRampToValueAtTime(isChecked?1:0, audioContext.currentTime + 1);
+        sfxGainNode.gain.linearRampToValueAtTime(isChecked?1:0, audioContext.currentTime + 0.5);
       }, true, this.pauseScene);
 
     debugCheckBox = this.createCheckBox(this.app.view.width/2, this.app.view.height * 0.5, 300, 64, 'DEBUG',
@@ -364,6 +365,10 @@ const beanCounters = new Game(
     countDownText.visible = false;
     this.gameScene.addChild(countDownText);
 
+    fpsText = new PIXI.Text('30', Game.ButtonTextStyle);
+    fpsText.tint = 0xeeff00;
+    this.gameScene.addChild(fpsText);
+
     updateProjectileRespawnPoint();
 
     updateProjectileVelocity();
@@ -373,7 +378,7 @@ const beanCounters = new Game(
     this.app.stage.addChild(graphics);
   },
   function(scale, delta) {
-
+    fpsText.text = PIXI.Ticker.shared.FPS.toFixed(2) + ' FPS';
     if(this.currentScene !== 'game') return; //if not playing, return
 
     //if dead, increment deadCounter
@@ -596,9 +601,17 @@ const beanCounters = new Game(
     }
   },
   function(x, y) {},
-  function(key) {
+  function(key, e) {
     if(key === 'Escape') {
       pause();
+    }
+    if(key === ' ') {
+      player.x += 10;
+      /*
+      * action: shortcut keys are controlling webpage
+      * how to detect: is e.preventDefault() being called?
+      */
+      e.preventDefault();
     }
   },
   function() {},

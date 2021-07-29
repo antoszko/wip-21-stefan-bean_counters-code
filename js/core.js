@@ -51,6 +51,13 @@ export class Game {
         );
         //PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
         document.body.appendChild(this.app.view);
+        /*
+        adding a tooltip to canvas.
+        clicking on canvas makes the tooltip stop working
+        clicking on text, textarea, or scrolling makes it work again
+        TODO no idea why????
+         */
+        this.app.view.title = "game";
 
         this.loader = PIXI.Loader.shared;
         this.ticker = PIXI.Ticker.shared;
@@ -69,16 +76,21 @@ export class Game {
                 this.resize(this.app.view.width,  this.app.view.height);
             }
             //input callbacks
-            document.body.onmousemove = (e) => {this.mouseMove(e.x - this.app.view.offsetLeft, e.y - this.app.view.offsetTop)};
-            document.body.onmousedown = (e) => {this.mouseDown(e.x - this.app.view.offsetLeft, e.y - this.app.view.offsetTop)};
-            document.body.onmouseup = (e) => {this.mouseUp(e.x - this.app.view.offsetLeft, e.y - this.app.view.offsetTop)};
-            document.body.onkeydown = (e) => {this.keyDown(e.key)};
+            this.app.view.onmousemove = (e) => {this.mouseMove(e.x, e.y)};
+            this.app.view.onmousedown = (e) => {this.mouseDown(e.x, e.y)};
+            this.app.view.onmouseup = (e) => {this.mouseUp(e.x, e.y)};
+            document.body.onkeydown = (e) => {console.log(e.key); this.keyDown(e.key, e)};
             document.body.onkeyup = (e) => {this.keyUp(e.key)};
+            this.app.view.onfocus = (e) => {
+                console.log('focused canvass');
+            }
             //call user-defined update
             this.ticker.add((delta)=>{
                 this.update(delta, this.ticker.deltaMS);
             });
         });
+
+        this.app.view.focus();
     }
 
     setScene(scene) {

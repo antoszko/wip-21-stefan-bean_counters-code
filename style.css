@@ -1,15 +1,31 @@
 body {
     padding: 0;
     margin: 0;
-    display: flex;
-    justify-content: center;
-    height: 100vh;
-    align-items: center;
-    background-color: #478d6d;
-    font-family: "Burbank Big Regular Bold";
+    /*display: flex;*/
+    /*justify-content: center;*/
+    /*height: 100vh;*/
+    /*align-items: center;*/
+    /*background-color: #478d6d;*/
+    /*font-family: "Burbank Big Regular Bold";*/
 }
 
 @font-face {
     font-family: "Burbank Big Regular Bold";
     src: url("fonts/burbank_big_regular_bold.ttf") format("truetype");
+}
+
+p {
+    padding: 10pt;
+    font-size: 14pt;
+}
+
+p:focus {
+    background-color: yellow;
+    color: #FF0000;
+}
+
+kbd {
+    border-radius: 3px;
+    padding: 1px 2px 0;
+    border: 1px solid black;
 }
