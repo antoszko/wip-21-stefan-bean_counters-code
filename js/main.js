@@ -608,10 +608,14 @@ const beanCounters = new Game(
     if(key === ' ') {
       player.x += 10;
       /*
-      * action: shortcut keys are controlling webpage
+      * BUG
+      *  action: shortcut keys are controlling webpage
       * how to detect: is e.preventDefault() being called?
       */
       e.preventDefault();
+    }
+    if(key === 's') {
+      screenshot();
     }
   },
   function() {},
@@ -770,4 +774,18 @@ function updateProjectileVelocity() {
   let vf = -Math.sqrt(PROJ_VEL_Y * PROJ_VEL_Y + 2 * (-Projectile.GRAVITY) * d); //middle step since I dont want to use quadratic formula
   let t = 2 * d / (-PROJ_VEL_Y + vf);
   PROJ_VEL_X = (-beanCounters.app.view.width + 400 - 0.5 * Projectile.HORIZONTAL_GRAVITY * t * t) / t;  //solve for vi
+}
+/*
+ * BUG saving: image has different background color
+ * No clue how to detect
+ */
+function screenshot() {
+  pause();
+  var today = new Date();
+
+  var link = document.createElement("a");
+  document.body.appendChild(link); // for Firefox
+  link.setAttribute("href", beanCounters.app.renderer.plugins.extract.base64(beanCounters.app.stage));
+  link.setAttribute("download", 'screenshot '+today.getFullYear()+'-'+(today.getMonth()+1)+'-'+today.getDate()+' '+today.getHours() + "." + today.getMinutes() + "." + today.getSeconds()+'.png');
+  link.click();
 }

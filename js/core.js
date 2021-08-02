@@ -52,10 +52,11 @@ export class Game {
         //PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
         document.body.appendChild(this.app.view);
         /*
-        adding a tooltip to canvas.
-        clicking on canvas makes the tooltip stop working
-        clicking on text, textarea, or scrolling makes it work again
-        TODO no idea why????
+         * BUG
+         *  action: tooltip doesnt show when hovering over canvas.
+         * clicking on canvas makes the tooltip stop working
+         * clicking on text, textarea, or scrolling makes it work again
+         * TODO no idea why????
          */
         this.app.view.title = "game";
 
@@ -72,14 +73,18 @@ export class Game {
 
             //window resize
             window.onresize = () => {
+                /*
+                 * BUG layout: viewable content is cutoff due to incorrect canvas dimensions
+                 * resize canvas, but dont adjust positioning of gameobjects and GUI
+                 */
                 this.app.renderer.resize(window.innerWidth * SCALE,  window.innerHeight * SCALE);
-                this.resize(this.app.view.width,  this.app.view.height);
+                //this.resize(this.app.view.width,  this.app.view.height);
             }
             //input callbacks
             this.app.view.onmousemove = (e) => {this.mouseMove(e.x, e.y)};
             this.app.view.onmousedown = (e) => {this.mouseDown(e.x, e.y)};
             this.app.view.onmouseup = (e) => {this.mouseUp(e.x, e.y)};
-            document.body.onkeydown = (e) => {console.log(e.key); this.keyDown(e.key, e)};
+            document.body.onkeydown = (e) => {this.keyDown(e.key, e)};
             document.body.onkeyup = (e) => {this.keyUp(e.key)};
             this.app.view.onfocus = (e) => {
                 console.log('focused canvass');
