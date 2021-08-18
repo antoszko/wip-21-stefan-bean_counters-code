@@ -217,10 +217,10 @@ const beanCounters = new Game(
     this.loader
       .add('sheet', 'images/sheet.png')
       .add('menu', 'images/Menu_08.jpg')
+      .add('bg', 'images/8k test.jpeg')
       .add('gui', 'images/gui.png')
       .add('truck', 'images/truck.png')
       .add('font', 'fonts/burbank_big_regular_bold.ttf');
-
   },
   function(resources) {
 
@@ -235,6 +235,15 @@ const beanCounters = new Game(
         ));
       }
     }
+
+    /*
+     * BUG performance: large images causes it to slow down
+     *  8k image, its only slow when resizing/starting game.
+     */
+    const gameBGSprite = new PIXI.Sprite(resources.bg.texture);
+    gameBGSprite.scale.x = 0.4;
+    gameBGSprite.scale.y = 0.4;
+    this.gameScene.addChild(gameBGSprite);
 
     menuBGSprite = new PIXI.Sprite(resources.menu.texture);
     this.menuScene.addChild(menuBGSprite);
@@ -294,6 +303,20 @@ const beanCounters = new Game(
         graphics.clear();
       }, false, this.pauseScene);
 
+    /*
+     * BUG rendering: Text is blurry or distorted
+     *  scale is non-1
+     */
+    const blurryFontStyle = new PIXI.TextStyle({fill: 0xFFFFFF, miterLimit: 4, fontSize: 18,fontFamily: 'Burbank Big Regular Bold'});
+    const blurryText = new PIXI.Text('MUSIC', blurryFontStyle);
+    blurryText.x = 400;
+    blurryText.y = this.app.view.height * 0.25;
+    blurryText.anchor.x = 0.5;
+    blurryText.anchor.y = 0.5;
+    blurryText.scale.x = 2;
+    blurryText.scale.y = 2;
+    this.pauseScene.addChild(blurryText);
+
     livesText = new PIXI.Text('LIVES: 3', Game.ButtonTextStyle);
     livesText.x = 20;
     livesText.y = 48;
@@ -347,7 +370,6 @@ const beanCounters = new Game(
     upperText.y = this.app.view.height / 3;
     upperText.visible = false;
     this.gameScene.addChild(upperText);
-
 
     lowerText = new PIXI.Text('TRY AGAIN..', Game.ButtonTextStyle);
     lowerText.anchor = new PIXI.Point(0.5, 0.5);

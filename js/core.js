@@ -26,7 +26,7 @@ export class Game {
     winScene = new PIXI.Container();
 
     //buttons
-    static ButtonTextStyle = new PIXI.TextStyle({fill: 0xFFFFFF, stroke: 0x0, strokeThickness: 6, miterLimit: 4, fontSize: 36,fontFamily: 'Burbank Big Regular Bold'});
+    static ButtonTextStyle = new PIXI.TextStyle({fill: 0xFFFFFF, stroke: 0x0, strokeThickness: 0, miterLimit: 4, fontSize: 36,fontFamily: 'Burbank Big Regular Bold'});
     static BigTextStyle = new PIXI.TextStyle({fill: 0xFFFFFF, stroke: 0x0, strokeThickness: 6, miterLimit: 4, fontSize: 128,fontFamily: 'Burbank Big Regular Bold'});
 
     constructor(addTextures, loadTextures, update, mouseMove, mouseDown, mouseUp, keyDown, keyUp, resize) {
