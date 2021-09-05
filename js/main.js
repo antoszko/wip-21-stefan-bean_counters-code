@@ -8,6 +8,22 @@
   chance of hazards = 0.3 - 11 * (level - 4) * (level - 4) / 300
  */
 
+/**
+ * BUG zooming not working
+ *
+ * in general, zooming doesnt work as expected. (ie. cmd +/- or ctrl +/-)
+ * The canvas stays the same size relative to window, but content is scaled up/down
+ * Could be due to canvas css
+ * display: flex;
+ * justify-content: center;
+ */
+
+/**
+ * BUG performance low when zoomed out
+ * whole 8k image is being drawn and its slow :(
+ * when zoomed in, most of the image is culled and its fast
+ */
+
 import {Game} from "./core.js";
 
 class Projectile extends PIXI.AnimatedSprite {

@@ -47,6 +47,14 @@ export class Game {
               height: window.innerHeight * SCALE,
               backgroundColor: 0xAAAAAA,
               autoResize: true,
+              /**
+               * BUG PIXI.Application.resolution messes up a whole bunch of things
+               * rendering of image is scaled down
+               * dragging on objects is not working
+               *
+               * the canvas.onmousemove function returns UNCSCALED position, breaking dragging
+               */
+              resolution: 0.8
           }
         );
         //PIXI.settings.SCALE_MODE = PIXI.SCALE_MODES.NEAREST;
